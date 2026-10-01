@@ -1,0 +1,18 @@
+Package: SAStoCSV
+Title: Convert Irregular SAS Text Exports to CSV in Parallel
+Version: 0.1.0
+Authors@R: person("Caleb", "Vinson", role = c("aut", "cre"))
+Description: Reads whitespace-delimited SAS text exports (and .sas7bdat
+    files) that do not have a fixed column count row to row, pads or
+    truncates each row to a declared schema while reporting how many rows
+    were touched, and writes the result to CSV, optionally using a parallel
+    cluster.
+License: MIT
+Encoding: UTF-8
+Imports:
+    data.table,
+    parallel
+Suggests:
+    haven,
+    testthat (>= 3.0.0),
+    withr

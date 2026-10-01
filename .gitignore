@@ -1,0 +1,12 @@
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+.Renviron
+
+# Output CSVs are run-specific and can be large; nothing here is tracked.
+*.csv
+
+# Raw SAS inputs are not ours to commit and can be large.
+data/
+*.sas7bdat
