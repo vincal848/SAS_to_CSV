@@ -47,40 +47,6 @@ startup and the serialized round-trip of each file's data.frame back to the main
 process; adding workers past a handful mostly adds that overhead back. These are
 single-run, single-machine timings, not an average over repeated runs.
 
-## What was wrong
-
-**The core defect was silent column fixing, not missing variables.** `fill = TRUE`
-in `read.table()` pads every row in a file up to that file's own widest row before
-`process_file_set()` ever compares it to the expected column count, so a file with
-one 5-field row and one 2-field row reports 5 columns for every row, and nothing
-downstream can tell which row was actually short. `read_irregular()` counts fields
-per line before padding anything, and returns the pad/truncate counts as attributes
-(`test-read_irregular.R`, "short rows are padded with NA and the pad count is
-reported" / "long rows are truncated...").
-
-**The script could not run as written.** It defines `crsp_files`, `usar_files`,
-`usrr_files`, then calls `process_file_parallel()` on `a_files`/`b_files`/`c_files`,
-which do not exist anywhere in the file.
-
-**The cluster was opened once at the top level and never guaranteed to close.**
-`cl <- makeCluster(num_cores)` runs before any work happens and `stopCluster(cl)` is
-the last line of the script, so an error partway through any of the three
-`process_file_parallel()` calls leaves the cluster running. `convert_files()` opens
-its cluster inside the call and closes it with `on.exit()`.
-
-**`detectCores() - 1` can be zero**, and `makeCluster(0)` errors, on a single-core
-CI runner or VM. `convert_files()` uses `cores = max(1, cores)` and only opens a
-cluster when `cores > 1`; `test-convert_files.R`'s "cores = 2 produces the same
-result as cores = 1" exercises both paths against the same input.
-
-**One `do.call(rbind, data_list)` built the entire combined table in memory before
-the single `write.csv()` call.** `convert_files()` writes each file's chunk via
-`data.table::fwrite(..., append = TRUE)` as it is produced, checked by "the written
-CSV round-trips to the same data."
-
-**The `library(parallel)` comment says `install.packages(parallel)` if needed** —
-`parallel` ships with base R and has never been on CRAN.
-
 ## How it works
 
 `read_irregular()` reads one file, splits each line on whitespace (or a given
@@ -138,7 +104,7 @@ Rscript bench.R 40 20000
 | `convert_cli.R` | Command-line wrapper around `convert_files()` |
 | `bench.R` | Generates synthetic CRSP-like files and times serial vs. parallel `convert_files()` |
 | `tests/testthat/` | 34 tests: padding, truncation, column naming, file ordering, serial/parallel equality, CSV round-trip, errors, `.sas7bdat` |
-| `legacy/simple_conversion.R` | Original script, annotated with the defects above and the tests that pin each fix |
+| `legacy/simple_conversion.R` | Original script, kept for reference |
 | `DESCRIPTION` | Dependency declarations for CI (`r-lib/actions/setup-r-dependencies`) |
 
 ## Future interests
